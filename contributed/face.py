@@ -28,18 +28,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-import pickle
 import os
-
+import sys
+import pickle
 import cv2
 import numpy as np
 import tensorflow as tf
 from scipy import misc
 
-import align.detect_face
-import facenet
-
+sys.path.append(os.path.abspath('../'))
+from src import facenet, align
+from src.align import detect_face
 
 gpu_memory_fraction = 0.3
 facenet_model_checkpoint = os.path.dirname(__file__) + "/../model_checkpoints/20170512-110547"
@@ -85,8 +84,9 @@ class Recognition:
 
 class Identifier:
     def __init__(self):
-        with open(classifier_model, 'rb') as infile:
-            self.model, self.class_names = pickle.load(infile)
+        pass
+        # with open(classifier_model, 'rb') as infile:
+        #     self.model, self.class_names = pickle.load(infile)
 
     def identify(self, face):
         if face.embedding is not None:
@@ -130,14 +130,14 @@ class Detection:
             gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_memory_fraction)
             sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
             with sess.as_default():
-                return align.detect_face.create_mtcnn(sess, None)
+                return detect_face.create_mtcnn(sess, None)
 
     def find_faces(self, image):
         faces = []
 
-        bounding_boxes, _ = align.detect_face.detect_face(image, self.minsize,
-                                                          self.pnet, self.rnet, self.onet,
-                                                          self.threshold, self.factor)
+        bounding_boxes, _ = detect_face.detect_face(image, self.minsize,
+                                                    self.pnet, self.rnet, self.onet,
+                                                    self.threshold, self.factor)
         for bb in bounding_boxes:
             face = Face()
             face.container_image = image

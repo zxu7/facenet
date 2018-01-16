@@ -26,11 +26,13 @@ Based on code from https://github.com/shanren7/real_time_face_recognition
 # SOFTWARE.
 import argparse
 import sys
+import os
 import time
-
 import cv2
+sys.path.append(os.path.abspath('../'))
 
-import face
+# import face
+from contributed import face
 
 
 def add_overlays(frame, faces, frame_rate):
