@@ -47,26 +47,53 @@ class FaceDetector(object):
         bounding_boxes, _ = detect_face.detect_face(image, self.minsize,
                                                     self.pnet, self.rnet, self.onet,
                                                     self.threshold, self.factor)
+        if bounding_boxes is None:
+            return bboxes.append([])
         for bb in bounding_boxes:
-            bbox = []
-            # points coordinates has topleft as origin; [height/to/origin, width/to/origin]
-            tl = [np.maximum(bb[1] - self.face_crop_margin / 2, 0),
-                  np.maximum(bb[0] - self.face_crop_margin / 2, 0)]
-            br = [np.minimum(bb[3] + self.face_crop_margin / 2, img_size[0]),
-                  np.minimum(bb[2] + self.face_crop_margin / 2, img_size[1])]
-            bbox.append(tl[0])
-            bbox.append(tl[1])
-            bbox.append(br[0])
-            bbox.append(br[1])
+            if bb is None:
+                bboxes.append([])
+                continue
+            # points coordinates has topleft as origin; [width/to/origin， height/to/origin]
+            tl = [np.maximum(bb[0] - self.face_crop_margin / 2, 0),
+                  np.maximum(bb[1] - self.face_crop_margin / 2, 0)]
+            br = [np.minimum(bb[2] + self.face_crop_margin / 2, img_size[0]),
+                  np.minimum(bb[3] + self.face_crop_margin / 2, img_size[1])]
+            bbox = [tl[0], tl[1], br[0], br[1]]
+            # case when predicted face can't be drawn
+            if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
+                bbox = []
             bboxes.append(bbox)
 
         return bboxes
 
     def batch_find_faces(self, images):
-        bboxes = detect_face.bulk_detect_face(images, self.minratio, self.pnet,
+        bounding_boxes = detect_face.bulk_detect_face(images, self.minratio, self.pnet,
                                               self.rnet, self.onet, self.threshold,
                                               self.factor)
-        return bboxes
+        bboxes = []
+        for image, bounding_boxes_1 in zip(images, bounding_boxes):
+            # no face detected
+            if bounding_boxes_1 is None:
+                bboxes.append([[]])
+                continue
+            img_size = np.asarray(image.shape)[0:2]
+            bboxes_1 = []
+            for bb in bounding_boxes_1[0]:
+                if bb is None:
+                    bboxes_1.append([])
+                    continue
+                # points coordinates has topleft as origin; [width/to/origin， height/to/origin]
+                tl = [np.maximum(bb[0] - self.face_crop_margin / 2, 0),
+                      np.maximum(bb[1] - self.face_crop_margin / 2, 0)]
+                br = [np.minimum(bb[2] + self.face_crop_margin / 2, img_size[0]),
+                      np.minimum(bb[3] + self.face_crop_margin / 2, img_size[1])]
+                bbox = [tl[0], tl[1], br[0], br[1]]
+                # case when predicted face can't be drawn
+                if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
+                    bbox = []
+                bboxes_1.append(bbox)
+            bboxes.append(bboxes_1)
+        return bboxes, bounding_boxes
 
 
 class FaceEncoder(object):
