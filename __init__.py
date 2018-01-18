@@ -1,1 +1,0 @@
-from facenet import FaceDetector, FaceEncoder

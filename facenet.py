@@ -5,9 +5,9 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from scipy import misc
+from .src import facenet, align
+from .src.align import detect_face
 
-from src import facenet, align
-from src.align import detect_face
 
 gpu_memory_fraction = 0.3
 facenet_model_checkpoint = os.path.dirname(__file__) + "/model_checkpoints/20170512-110547"
