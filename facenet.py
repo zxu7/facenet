@@ -19,6 +19,7 @@ class FaceDetector(object):
     face detector for initializing the MTCNN model
     """
     minsize = 20  # minimum size of face
+    minratio = 1 / 20 # ratio of minimum size of face to minimum side of image
     threshold = [0.6, 0.7, 0.7]  # three steps's threshold
     factor = 0.709  # scale factor
 
@@ -62,9 +63,9 @@ class FaceDetector(object):
         return bboxes
 
     def batch_find_faces(self, images):
-        bboxes = detect_face.bulk_detect_face(images, self.minsize, self.pnet,
-                                              self.rnet, self.onet,
-                                              self.threshold, self.factor)
+        bboxes = detect_face.bulk_detect_face(images, self.minratio, self.pnet,
+                                              self.rnet, self.onet, self.threshold,
+                                              self.factor)
         return bboxes
 
 
@@ -95,11 +96,9 @@ class FaceEncoder(object):
 
     def batch_generate_embeddings(self, faces):
         faces = np.array([facenet.prewhiten(misc.imresize(face, (self.face_crop_size, self.face_crop_size),
-                                                 interp='bilinear')) for face in faces])
+                                                          interp='bilinear')) for face in faces])
         images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
         embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         feed_dict = {images_placeholder: faces, phase_train_placeholder: False}
         return self.sess.run(embeddings, feed_dict=feed_dict)
-
-
