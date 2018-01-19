@@ -14,6 +14,14 @@ facenet_model_checkpoint = os.path.dirname(__file__) + "/model_checkpoints/20170
 debug = False
 
 
+def compare_faces(embs, emb, tolerance=1.1):
+        matches = []
+        for i in range(len(embs)):
+            dist = np.sqrt(np.sum(np.square(np.subtract(embs[i, :], emb))))
+            matches.append(dist <= tolerance)
+        return matches
+
+
 class FaceDetector(object):
     """
     face detector for initializing the MTCNN model
@@ -48,10 +56,9 @@ class FaceDetector(object):
                                                     self.pnet, self.rnet, self.onet,
                                                     self.threshold, self.factor)
         if bounding_boxes is None:
-            return bboxes.append([])
+            return bboxes
         for bb in bounding_boxes:
             if bb is None:
-                bboxes.append([])
                 continue
             # points coordinates has topleft as origin; [width/to/origin， height/to/origin]
             tl = [np.maximum(bb[0] - self.face_crop_margin / 2, 0),
@@ -61,7 +68,7 @@ class FaceDetector(object):
             bbox = [tl[0], tl[1], br[0], br[1]]
             # case when predicted face can't be drawn
             if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
-                bbox = []
+                continue
             bboxes.append(bbox)
 
         return bboxes
@@ -74,13 +81,11 @@ class FaceDetector(object):
         for image, bounding_boxes_1 in zip(images, bounding_boxes):
             # no face detected
             if bounding_boxes_1 is None:
-                bboxes.append([[]])
                 continue
             img_size = np.asarray(image.shape)[0:2]
             bboxes_1 = []
             for bb in bounding_boxes_1[0]:
                 if bb is None:
-                    bboxes_1.append([])
                     continue
                 # points coordinates has topleft as origin; [width/to/origin， height/to/origin]
                 tl = [np.maximum(bb[0] - self.face_crop_margin / 2, 0),
@@ -90,7 +95,7 @@ class FaceDetector(object):
                 bbox = [tl[0], tl[1], br[0], br[1]]
                 # case when predicted face can't be drawn
                 if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
-                    bbox = []
+                    continue
                 bboxes_1.append(bbox)
             bboxes.append(bboxes_1)
         return bboxes, bounding_boxes
