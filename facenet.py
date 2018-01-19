@@ -15,11 +15,17 @@ debug = False
 
 
 def compare_faces(embs, emb, tolerance=1.1):
-        matches = []
-        for i in range(len(embs)):
-            dist = np.sqrt(np.sum(np.square(np.subtract(embs[i, :], emb))))
-            matches.append(dist <= tolerance)
-        return matches
+    """compare a list of face embeddings to one embedding
+    :param embs: list;
+    :param emb: np.array;
+    :param tolerance: float
+    :return: matches: list; list of True/False indicating match/no match
+    """
+    matches = []
+    for i in range(len(embs)):
+        dist = np.sqrt(np.sum(np.square(np.subtract(embs[i], emb))))
+        matches.append(dist <= tolerance)
+    return matches
 
 
 class FaceDetector(object):
