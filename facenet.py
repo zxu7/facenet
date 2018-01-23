@@ -113,6 +113,11 @@ class FaceDetector(object):
         return bboxes
 
     def batch_find_faces(self, images):
+        """
+        :param images: list of images
+        :return: bboxes: list of list of face locations
+            [[image1_faceloc1, image2_faceloc2, ...], [image2_faceloc1, ...], ...]
+        """
         bounding_boxes = detect_face.bulk_detect_face(images, self.minratio, self.pnet,
                                               self.rnet, self.onet, self.threshold,
                                               self.factor)
@@ -120,6 +125,7 @@ class FaceDetector(object):
         for image, bounding_boxes_1 in zip(images, bounding_boxes):
             # no face detected
             if bounding_boxes_1 is None:
+                bboxes.append([])
                 continue
             img_size = np.asarray(image.shape)[0:2]
             bboxes_1 = []
@@ -137,7 +143,7 @@ class FaceDetector(object):
                     continue
                 bboxes_1.append(bbox)
             bboxes.append(bboxes_1)
-        return bboxes, bounding_boxes
+        return bboxes
 
 
 class FaceEncoder(object):
@@ -166,10 +172,35 @@ class FaceEncoder(object):
         return self.sess.run(embeddings, feed_dict=feed_dict)[0]
 
     def batch_generate_embeddings(self, faces):
-        faces = np.array([facenet.prewhiten(misc.imresize(face, (self.face_crop_size, self.face_crop_size),
-                                                          interp='bilinear')) for face in faces])
+        """ resize and prewhiten each face in faces if face not empty [].
+        get embeddings for processed faces and leave empty empty
+        :param faces:
+        :return:
+        """
+        # TODO: condition for no face
+        def preprocess(face):
+            if face:
+                out = np.array(facenet.prewhiten(
+                    misc.imresize(face, (self.face_crop_size, self.face_crop_size),
+                                  interp='bilinear')))
+            else:
+                out = []
+            return out
+
+        all_faces = list(map(preprocess, faces))
+        # take out nonempty faces
+        faces_idx = [(all_faces_1, i) for i, all_faces_1 in enumerate(all_faces) if all_faces_1]
+        faces = [faces_idx_1[0] for faces_idx_1 in faces_idx]
+        idx = [faces_idx_1[1] for faces_idx_1 in faces_idx]
+        # faces = np.array([facenet.prewhiten(misc.imresize(face, (self.face_crop_size, self.face_crop_size),
+        #                                                   interp='bilinear')) for face in faces if face])
         images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
         embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         feed_dict = {images_placeholder: faces, phase_train_placeholder: False}
-        return self.sess.run(embeddings, feed_dict=feed_dict)
+        pred_embs = self.sess.run(embeddings, feed_dict=feed_dict)
+        out = [[]] * len(faces)
+        for idx_1 in idx:
+            out[int(idx_1)] = pred_embs[int(idx_1)]
+        return out
+        # return self.sess.run(embeddings, feed_dict=feed_dict)
