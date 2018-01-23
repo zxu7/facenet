@@ -189,7 +189,8 @@ class FaceEncoder(object):
 
         all_faces = list(map(preprocess, faces))
         # take out nonempty faces
-        faces_idx = [(all_faces_1, i) for i, all_faces_1 in enumerate(all_faces) if all_faces_1]
+        faces_idx = [(all_faces_1, i) for i, all_faces_1 in enumerate(all_faces)
+                     if not isinstance(all_faces_1, list)]
         faces = [faces_idx_1[0] for faces_idx_1 in faces_idx]
         idx = [faces_idx_1[1] for faces_idx_1 in faces_idx]
         # faces = np.array([facenet.prewhiten(misc.imresize(face, (self.face_crop_size, self.face_crop_size),
