@@ -200,7 +200,7 @@ class FaceEncoder(object):
         phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
         feed_dict = {images_placeholder: faces, phase_train_placeholder: False}
         pred_embs = self.sess.run(embeddings, feed_dict=feed_dict)
-        out = [[]] * len(faces)
+        out = [[]] * len(all_faces)
         for idx_1 in idx:
             out[int(idx_1)] = pred_embs[int(idx_1)]
         return out
