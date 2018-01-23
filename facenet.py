@@ -14,18 +14,36 @@ facenet_model_checkpoint = os.path.dirname(__file__) + "/model_checkpoints/20170
 debug = False
 
 
-def compare_faces(embs, emb, tolerance=1.1):
+def compare_faces(embs, emb, tolerance=1.1, mode='min_5'):
     """compare a list of face embeddings to one embedding
+    modes:
+    -vote
+        returns True when distance is not above threshold
+    -min_x
+        returns True when distance is the minimal x of all
+         and not above threshold
     :param embs: list;
     :param emb: np.array;
     :param tolerance: float
     :return: matches: list; list of True/False indicating match/no match
     """
     matches = []
+    dists = []
     for i in range(len(embs)):
         dist = np.sqrt(np.sum(np.square(np.subtract(embs[i], emb))))
+        dists.append(dist)
         matches.append(dist <= tolerance)
-    return matches
+    if mode == 'vote':
+        return matches
+    elif 'min_' in mode:
+        x = int(mode.split('_')[-1])
+        arg_sort_dists = np.argsort(dists)[:x]
+        matches = [False] * len(dists)
+        for idx in arg_sort_dists:
+            matches[idx] = True
+        return matches
+    else:
+        raise ValueError("mode is either vote or min_x")
 
 
 class FaceDetector(object):
