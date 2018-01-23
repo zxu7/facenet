@@ -201,7 +201,7 @@ class FaceEncoder(object):
         feed_dict = {images_placeholder: faces, phase_train_placeholder: False}
         pred_embs = self.sess.run(embeddings, feed_dict=feed_dict)
         out = [[]] * len(all_faces)
-        for idx_1 in idx:
-            out[int(idx_1)] = pred_embs[int(idx_1)]
+        for i, idx_1 in enumerate(idx):
+            out[int(idx_1)] = pred_embs[i]
         return out
         # return self.sess.run(embeddings, feed_dict=feed_dict)
