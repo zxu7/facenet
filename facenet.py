@@ -2,6 +2,7 @@
 """Face Detection and Recognition"""
 import os
 import cv2
+import pickle
 import numpy as np
 import tensorflow as tf
 from scipy import misc
@@ -14,7 +15,7 @@ facenet_model_checkpoint = os.path.dirname(__file__) + "/model_checkpoints/20170
 debug = False
 
 
-def compare_faces(embs, emb, tolerance=1.1, mode='min_5'):
+def compare_faces(embs, emb, tolerance=1.1, mode='classifier'):
     """compare a list of face embeddings to one embedding
     modes:
     -vote
@@ -22,10 +23,16 @@ def compare_faces(embs, emb, tolerance=1.1, mode='min_5'):
     -min_x
         returns True when distance is the minimal x of all
          and not above threshold
+    -classifier
+        use a classifier for prediction. classifier is trained by
+        embs + some random images from the lfw dataset. While keeping
+        the random images' distance to embs < tolerance
     :param embs: list;
     :param emb: np.array;
     :param tolerance: float
-    :return: matches: list; list of True/False indicating match/no match
+    :return: matches: list or str;
+        list of True/False indicating match/no match
+        str of class name
     """
     matches = []
     dists = []
@@ -38,10 +45,18 @@ def compare_faces(embs, emb, tolerance=1.1, mode='min_5'):
     elif 'min_' in mode:
         x = int(mode.split('_')[-1])
         arg_sort_dists = np.argsort(dists)[:x]
-        matches = [False] * len(dists)
+        matches1 = [False] * len(dists)
         for idx in arg_sort_dists:
-            matches[idx] = True
-        return matches
+            if matches[idx] is True:
+                matches1[idx] = True
+        return matches1
+    elif mode == 'classifier':
+        # TODO: classifier path should not be fixed
+        with open('/home/harry/data/face_yolo_test/sample_surveillance/sample_surveillance_classifier.pkl',
+                  'rb') as outfile:
+            model, class_name = pickle.load(outfile)
+        match = class_name[model.predict(emb.reshape(1, -1))[0]]
+        return match
     else:
         raise ValueError("mode is either vote or min_x")
 
