@@ -125,7 +125,7 @@ class FaceDetector(object):
         for image, bounding_boxes_1 in zip(images, bounding_boxes):
             # no face detected
             if bounding_boxes_1 is None:
-                bboxes.append([])
+                bboxes.append([[]])
                 continue
             img_size = np.asarray(image.shape)[0:2]
             bboxes_1 = []
@@ -179,12 +179,12 @@ class FaceEncoder(object):
         """
         # TODO: condition for no face
         def preprocess(face):
-            if face:
+            if isinstance(face, list):
+                out = []
+            else:
                 out = np.array(facenet.prewhiten(
                     misc.imresize(face, (self.face_crop_size, self.face_crop_size),
                                   interp='bilinear')))
-            else:
-                out = []
             return out
 
         all_faces = list(map(preprocess, faces))
