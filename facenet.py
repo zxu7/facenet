@@ -147,11 +147,34 @@ class FaceDetector(object):
 
 
 class FaceEncoder(object):
-    def __init__(self, face_crop_size=160):
+    def __init__(self, face_crop_size=160, load_pb=True):
         self.face_crop_size = face_crop_size
+        self.load_pb = load_pb
         self.sess = tf.Session()
-        with self.sess.as_default():
-            facenet.load_model(facenet_model_checkpoint)
+        if load_pb:
+            model_exp = os.path.expanduser(facenet_model_checkpoint)
+            pb_file = os.path.join(model_exp, os.path.basename(model_exp) + '.pb')
+            G = tf.Graph()
+            with G.as_default():
+                with tf.gfile.GFile(pb_file, 'rb') as f:
+                    graph_def_optimized = tf.GraphDef()
+                    graph_def_optimized.ParseFromString(f.read())
+                _ = tf.import_graph_def(graph_def_optimized, name='')
+
+            self.sess = tf.Session(graph=G)
+            with self.sess.as_default():
+                self.embeddings = self.sess.graph.get_tensor_by_name('embeddings:0')
+                self.images_placeholder = self.sess.graph.get_tensor_by_name('input:0')
+                self.phase_train_placeholder = G.get_tensor_by_name('phase_train:0')
+                # tf.global_variables_initializer().run()
+                # out = sess.run(y, feed_dict={x: 1.0})
+
+        else:
+            with self.sess.as_default():
+                facenet.load_model(facenet_model_checkpoint)
+            self.images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
+            self.embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
+            self.phase_train_placeholder = self.sess.graph.get_tensor_by_name("phase_train:0")
 
     def generate_embedding(self, face):
         """
@@ -161,15 +184,10 @@ class FaceEncoder(object):
         """
         # Get input and output tensors
         face = misc.imresize(face, (self.face_crop_size, self.face_crop_size), interp='bilinear')
-        images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
-        embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-        phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
-
         prewhiten_face = facenet.prewhiten(face)
-
         # Run forward pass to calculate embeddings
-        feed_dict = {images_placeholder: [prewhiten_face], phase_train_placeholder: False}
-        return self.sess.run(embeddings, feed_dict=feed_dict)[0]
+        feed_dict = {self.images_placeholder: [prewhiten_face], self.phase_train_placeholder: False}
+        return self.sess.run(self.embeddings, feed_dict=feed_dict)[0]
 
     def batch_generate_embeddings(self, faces):
         """ resize and prewhiten each face in faces if face not empty [].
@@ -195,11 +213,8 @@ class FaceEncoder(object):
         idx = [faces_idx_1[1] for faces_idx_1 in faces_idx]
         # faces = np.array([facenet.prewhiten(misc.imresize(face, (self.face_crop_size, self.face_crop_size),
         #                                                   interp='bilinear')) for face in faces if face])
-        images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
-        embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-        phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
-        feed_dict = {images_placeholder: faces, phase_train_placeholder: False}
-        pred_embs = self.sess.run(embeddings, feed_dict=feed_dict)
+        feed_dict = {self.images_placeholder: faces, self.phase_train_placeholder: False}
+        pred_embs = self.sess.run(self.embeddings, feed_dict=feed_dict)
         out = [[]] * len(all_faces)
         for i, idx_1 in enumerate(idx):
             out[int(idx_1)] = pred_embs[i]

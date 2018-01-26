@@ -369,6 +369,7 @@ def split_dataset(dataset, split_ratio, mode):
         raise ValueError('Invalid train/test split mode "%s"' % mode)
     return train_set, test_set
 
+
 def load_model(model):
     # Check if the model is a model directory (containing a metagraph and a checkpoint file)
     #  or if it is a protobuf file with a frozen graph
@@ -382,13 +383,13 @@ def load_model(model):
     else:
         print('Model directory: %s' % model_exp)
         meta_file, ckpt_file = get_model_filenames(model_exp)
-        
+
         print('Metagraph file: %s' % meta_file)
         print('Checkpoint file: %s' % ckpt_file)
-      
+
         saver = tf.train.import_meta_graph(os.path.join(model_exp, meta_file))
         saver.restore(tf.get_default_session(), os.path.join(model_exp, ckpt_file))
-    
+
 def get_model_filenames(model_dir):
     files = os.listdir(model_dir)
     meta_files = [s for s in files if s.endswith('.meta')]
