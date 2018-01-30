@@ -129,8 +129,10 @@ class FaceDetector(object):
                 continue
             img_size = np.asarray(image.shape)[0:2]
             bboxes_1 = []
+            # bounding_boxes_1[0] contains [t, l, b, r, confidence]
             for bb in bounding_boxes_1[0]:
                 if bb is None:
+                    bboxes_1.append([])
                     continue
                 # points coordinates has topleft as origin; [width/to/origin， height/to/origin]
                 tl = [np.maximum(bb[0] - self.face_crop_margin / 2, 0),
@@ -140,6 +142,7 @@ class FaceDetector(object):
                 bbox = [tl[0], tl[1], br[0], br[1]]
                 # case when predicted face can't be drawn
                 if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
+                    bboxes_1.append([])
                     continue
                 bboxes_1.append(bbox)
             bboxes.append(bboxes_1)
@@ -213,10 +216,13 @@ class FaceEncoder(object):
         idx = [faces_idx_1[1] for faces_idx_1 in faces_idx]
         # faces = np.array([facenet.prewhiten(misc.imresize(face, (self.face_crop_size, self.face_crop_size),
         #                                                   interp='bilinear')) for face in faces if face])
-        feed_dict = {self.images_placeholder: faces, self.phase_train_placeholder: False}
-        pred_embs = self.sess.run(self.embeddings, feed_dict=feed_dict)
-        out = [[]] * len(all_faces)
-        for i, idx_1 in enumerate(idx):
-            out[int(idx_1)] = pred_embs[i]
-        return out
+        if len(faces) == 0:
+            return [[]] * len(all_faces)
+        else:
+            feed_dict = {self.images_placeholder: faces, self.phase_train_placeholder: False}
+            pred_embs = self.sess.run(self.embeddings, feed_dict=feed_dict)
+            out = [[]] * len(all_faces)
+            for i, idx_1 in enumerate(idx):
+                out[int(idx_1)] = pred_embs[i]
+            return out
         # return self.sess.run(embeddings, feed_dict=feed_dict)
